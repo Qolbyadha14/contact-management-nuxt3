@@ -71,10 +71,8 @@ async function handleLogin() {
   try {
     isLoading.value = true
     const result = await authStore.login(formData.value)
-    console.log('Login result:', result)
     
     if (authStore.token) {
-      console.log('Token received, redirecting to dashboard')
       await router.push('/dashboard')
     } else {
       throw new Error('No token received')
