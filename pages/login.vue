@@ -12,6 +12,7 @@
           label="Username"
           v-model="formData.username"
           placeholder="Enter your username"
+          :disabled="isLoading"
         />
         <AuthInput
           id="password"
@@ -19,13 +20,20 @@
           type="password"
           v-model="formData.password"
           placeholder="Enter your password"
+          :disabled="isLoading"
         />
         <div>
           <button
             type="submit"
-            class="w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+            :disabled="isLoading"
+            class="w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed"
           >
-            Sign in
+            <span v-if="isLoading">
+              Logging in...
+            </span>
+            <span v-else>
+              Sign in
+            </span>
           </button>
         </div>
       </form>
@@ -42,8 +50,14 @@
 import { ref } from 'vue'
 import { useAuthStore } from '~/stores/auth'
 
+definePageMeta({
+  layout: 'default'
+})
+
 const router = useRouter()
 const authStore = useAuthStore()
+const isLoading = ref(false)
+const errorMessage = ref('')
 
 const formData = ref({
   username: '',
@@ -51,11 +65,25 @@ const formData = ref({
 })
 
 async function handleLogin() {
+  if (isLoading.value) return
+  errorMessage.value = ''
+  
   try {
-    await authStore.login(formData.value)
-    router.push('/dashboard')
+    isLoading.value = true
+    const result = await authStore.login(formData.value)
+    console.log('Login result:', result)
+    
+    if (authStore.token) {
+      console.log('Token received, redirecting to dashboard')
+      await router.push('/dashboard')
+    } else {
+      throw new Error('No token received')
+    }
   } catch (error: any) {
-    alert(error.message)
+    console.error('Login error:', error)
+    errorMessage.value = error.message || 'Failed to login. Please try again.'
+  } finally {
+    isLoading.value = false
   }
 }
 </script>

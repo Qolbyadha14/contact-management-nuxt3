@@ -1,3 +1,4 @@
+// stores/auth.ts
 import { defineStore } from 'pinia'
 import { useApi } from '~/composables/useApi'
 
@@ -12,20 +13,27 @@ export const useAuthStore = defineStore('auth', {
     token: null as string | null,
     user: null as any
   }),
-  
+  persist: true,
+    
   actions: {
     async login(payload: UserPayload) {
       try {
         const { fetchApi } = useApi()
-        const data = await fetchApi('/api/users/login', {
+        const response = await fetchApi('/api/users/login', {
           method: 'POST',
           body: JSON.stringify(payload)
         })
         
-        this.token = data.token
-        this.user = data.user
-        return data
+        // Assuming response format: { data: { token: string } }
+        if (response.data && response.data.token) {
+          this.token = response.data.token
+          this.user = payload // or response.data.user if available
+        } else {
+          throw new Error('Invalid response format')
+        }
+        return response
       } catch (error) {
+        console.error('Login error:', error)
         throw error
       }
     },
@@ -40,6 +48,12 @@ export const useAuthStore = defineStore('auth', {
       } catch (error) {
         throw error
       }
+    },
+
+    logout() {
+      this.token = null
+      this.user = null
+      navigateTo('/login')
     }
   }
 })

@@ -1,25 +1,31 @@
 // composables/useApi.ts
-import { useRuntimeConfig } from '#app'
-
 export const useApi = () => {
   const config = useRuntimeConfig()
-  const apiBase = config.public.apiBase
+  const authStore = useAuthStore()
 
   const fetchApi = async (endpoint: string, options: RequestInit = {}) => {
-    const url = `${apiBase}${endpoint}`
-    const response = await fetch(url, {
-      ...options,
-      headers: {
-        'Content-Type': 'application/json',
-        'Accept': 'application/json',
-        ...options.headers,
-      },
-    })
+    try {
+      const response = await fetch(`${config.public.apiBase}${endpoint}`, {
+        ...options,
+        headers: {
+          'Content-Type': 'application/json',
+          'Accept': 'application/json',
+          ...(authStore.token ? { 'Authorization': `Bearer ${authStore.token}` } : {}),
+          ...options.headers,
+        },
+      })
 
-    const data = await response.json()
-    if (!response.ok) throw new Error(data.message || 'API request failed')
-    
-    return data
+      const data = await response.json()
+      
+      if (!response.ok) {
+        throw new Error(data.errors || data.message || 'Request failed')
+      }
+
+      return data
+    } catch (error: any) {
+      console.error('API Error:', error)
+      throw new Error(error.message || 'Request failed')
+    }
   }
 
   return {
